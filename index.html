@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulateur de Devis</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #e60000;
+      --primary-hover: #cc0000;
+      --success-color: #28a745;
+      --bg-light: #f8f9fa;
+      --bg-dark: #212529;
+      --text-light: #212529;
+      --text-dark: #f8f9fa;
+      --card-shadow-light: rgba(0,0,0,0.1);
+      --card-shadow-dark: rgba(255,255,255,0.1);
+    }
+
+    body { 
+      background: var(--bg-light); 
+      color: var(--text-light);
+      transition: all 0.5s ease;
+    }
+
+    body.dark-mode {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    .container { max-width: 800px; padding: 30px 20px; }
+
+    .card { 
+      border: none; 
+      box-shadow: 0 0 15px var(--card-shadow-light); 
+      transition: all 0.5s ease;
+      background: white;
+    }
+
+    .dark-mode .card {
+      background: #2d3238;
+      box-shadow: 0 0 15px var(--card-shadow-dark);
+    }
+
+    .card:hover { 
+      transform: translateY(-5px);
+      box-shadow: 0 5px 25px var(--card-shadow-light);
+    }
+
+    .dark-mode .card:hover {
+      box-shadow: 0 5px 25px var(--card-shadow-dark);
+    }
+
+    .service-options { 
+      background: var(--bg-light); 
+      padding: 15px; 
+      border-radius: 8px; 
+      margin: 10px 0; 
+      transition: all 0.5s ease;
+    }
+
+    .dark-mode .service-options {
+      background: #2d3238;
+    }
+
+    .btn-primary { 
+      background: var(--primary-color); 
+      border-color: var(--primary-color); 
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover { 
+      background: var(--primary-hover); 
+      border-color: var(--primary-hover); 
+      transform: scale(1.05);
+    }
+
+    .form-check { 
+      margin: 15px 0; 
+      transition: all 0.3s ease;
+    }
+
+    .form-check:hover { 
+      transform: translateX(5px);
+    }
+
+    #resultat { 
+      font-size: 1.2em; 
+      transition: all 0.5s ease;
+    }
+
+    .reduction-badge { 
+      background: var(--success-color); 
+      color: white; 
+      padding: 5px 10px; 
+      border-radius: 4px; 
+      margin-left: 10px; 
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .form-control:focus { 
+      box-shadow: 0 0 0 0.2rem rgba(230, 0, 0, 0.25); 
+      border-color: var(--primary-color);
+    }
+
+    .dark-mode .form-control {
+      background-color: #2d3238;
+      border-color: #495057;
+      color: var(--text-dark);
+    }
+
+    .dark-mode .form-control:focus {
+      background-color: #2d3238;
+      border-color: var(--primary-color);
+      color: var(--text-dark);
+    }
+
+    .animate__animated { animation-duration: 0.5s; }
+
+    #devisHistory { 
+      max-height: 300px; 
+      overflow-y: auto;
+    }
+
+    .devis-item { 
+      cursor: pointer; 
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .dark-mode .devis-item {
+      background: #2d3238;
+      color: var(--text-dark);
+    }
+
+    .devis-item:hover { 
+      background: var(--bg-light);
+      transform: translateX(5px);
+    }
+
+    .dark-mode .devis-item:hover {
+      background: #495057;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 10px;
+      border-radius: 50%;
+      background: var(--bg-light);
+      border: 2px solid var(--primary-color);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .dark-mode .theme-toggle {
+      background: var(--bg-dark);
+    }
+
+    .theme-toggle:hover {
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card p-4 mt-4">
+      <h1 class="text-danger mb-4">Simulateur de Devis</h1>
+      
+      <form id="devisForm" class="mb-4">
+        <div class="mb-3">
+          <label for="categorie" class="form-label">Choisissez une catégorie :</label>
+          <select id="categorie" class="form-select">
+            <option value="">-- Choisir --</option>
+            <option value="site_vitrine">Site vitrine simple (80 000 FCFA)</option>
+            <option value="site_ecom">Site e-commerce (200 000 FCFA)</option>
+            <option value="logo">Logo simple (15 000 FCFA)</option>
+            <option value="depannage">Dépannage logiciel (15 000 FCFA)</option>
+            <option value="formation_web">Formation Web (40 000 FCFA)</option>
+          </select>
+        </div>
+
+        <div id="optionsSupplementaires" class="service-options d-none">
+          <h5>Options supplémentaires</h5>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="hebergement" value="20000">
+            <label class="form-check-label" for="hebergement">Ajouter l'hébergement (+20 000 FCFA)</label>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="urgence" value="15000">
+            <label class="form-check-label" for="urgence">Traitement en urgence (+15 000 FCFA)</label>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="maintenance" value="30000">
+            <label class="form-check-label" for="maintenance">Service de maintenance mensuel (+30 000 FCFA)</label>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="quantite" class="form-label">Quantité :</label>
+          <input type="number" class="form-control" id="quantite" value="1" min="1">
+        </div>
+
+        <div id="projetDetailleSection" class="service-options">
+          <h5>Description détaillée du projet</h5>
+          <div class="mb-3">
+            <label for="typeProjet" class="form-label">Type de projet</label>
+            <select class="form-select" id="typeProjet">
+              <option value="">-- Sélectionnez --</option>
+              <option value="site_web">Site Web</option>
+              <option value="application">Application</option>
+              <option value="design">Design</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="fonctionnalites" class="form-label">Fonctionnalités souhaitées</label>
+            <textarea class="form-control" id="fonctionnalites" rows="4" placeholder="Décrivez les fonctionnalités que vous souhaitez pour votre projet..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="budget" class="form-label">Budget estimé (FCFA)</label>
+            <input type="number" class="form-control" id="budget" placeholder="Votre budget approximatif">
+          </div>
+          <div class="mb-3">
+            <label for="delai" class="form-label">Délai souhaité</label>
+            <select class="form-select" id="delai">
+              <option value="urgent">Urgent (< 1 mois)</option>
+              <option value="normal">Normal (1-3 mois)</option>
+              <option value="flexible">Flexible (> 3 mois)</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary" onclick="calculerDevis()">Estimer le devis</button>
+      </form>
+
+      <div id="resultat" class="alert alert-success d-none animate__animated animate__fadeIn"></div>
+      <div id="graphiqueContainer" class="d-none animate__animated animate__fadeIn mb-4">
+        <canvas id="graphiqueRepartition"></canvas>
+      </div>
+
+      <div id="devisHistory" class="mb-4 d-none">
+        <h5>Historique des devis</h5>
+        <div class="list-group" id="devisHistoryList"></div>
+      </div>
+
+      <div class="mb-3 d-none" id="exportButtons">
+        <button type="button" class="btn btn-secondary me-2" onclick="exportDevisPDF()">Exporter en PDF</button>
+        <button type="button" class="btn btn-info" onclick="sauvegarderDevis()">Sauvegarder le devis</button>
+      </div>
+
+      <div id="contactForm" class="d-none mt-4 animate__animated animate__fadeIn">
+        <h5>Formulaire de contact</h5>
+        <div class="mb-3">
+          <label for="nom" class="form-label">Nom complet</label>
+          <input type="text" class="form-control" id="nom" required>
+        </div>
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="email" required>
+        </div>
+        <div class="mb-3">
+          <label for="telephone" class="form-label">Téléphone</label>
+          <input type="tel" class="form-control" id="telephone" required>
+        </div>
+        <button type="button" class="btn btn-success" onclick="envoyerDemande()">Envoyer la demande</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Gestion du thème
+    function toggleTheme() {
+      document.body.classList.toggle('dark-mode');
+      const isDarkMode = document.body.classList.contains('dark-mode');
+      localStorage.setItem('darkMode', isDarkMode);
+    }
+
+    // Restaurer le thème au chargement
+    document.addEventListener('DOMContentLoaded', () => {
+      const isDarkMode = localStorage.getItem('darkMode') === 'true';
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+      }
+    });
+
+    const basePrices = {
+      site_vitrine: 80000,
+      site_ecom: 200000,
+      logo: 15000,
+      depannage: 15000,
+      formation_web: 40000
+    };
+
+    document.getElementById('categorie').addEventListener('change', function() {
+      const optionsDiv = document.getElementById('optionsSupplementaires');
+      optionsDiv.classList.toggle('d-none', !this.value);
+    });
+
+    function calculerDevis() {
+      const service = document.getElementById('categorie').value;
+      const typeProjet = document.getElementById('typeProjet').value;
+      const fonctionnalites = document.getElementById('fonctionnalites').value;
+      const budgetEstime = parseFloat(document.getElementById('budget').value) || 0;
+      const delai = document.getElementById('delai').value;
+
+      let total = 0;
+      let complexite = 1;
+
+      // Calcul basé sur le service standard sélectionné
+      if (service) {
+        total = basePrices[service];
+      }
+
+      // Ajustement basé sur le type de projet et les fonctionnalités
+      if (typeProjet && fonctionnalites) {
+        const nbFonctionnalites = fonctionnalites.split('\n').filter(f => f.trim()).length;
+        complexite += nbFonctionnalites * 0.1; // Augmentation de 10% par fonctionnalité
+
+        // Ajustement selon le type de projet
+        switch(typeProjet) {
+          case 'application':
+            complexite *= 1.5; // Les applications sont 50% plus complexes
+            break;
+          case 'site_web':
+            complexite *= 1.2; // Les sites web sont 20% plus complexes
+            break;
+          case 'design':
+            complexite *= 0.8; // Le design est 20% moins complexe
+            break;
+        }
+
+        // Si aucun service standard n'est sélectionné, définir un prix de base
+        if (!service) {
+          total = 50000; // Prix de base pour un projet personnalisé
+        }
+      }
+
+      // Ajustement selon le délai
+      if (delai === 'urgent') {
+        complexite *= 1.3; // +30% pour l'urgence
+      }
+
+      // Application des options supplémentaires
+      if (document.getElementById('hebergement').checked) total += 20000;
+      if (document.getElementById('urgence').checked) total += 15000;
+      if (document.getElementById('maintenance').checked) total += 30000;
+
+      // Application de la complexité au total
+      total *= complexite;
+
+      const quantite = parseInt(document.getElementById('quantite').value) || 1;
+      total *= quantite;
+
+      // Appliquer une réduction pour les commandes multiples
+      let reduction = 0;
+      if (quantite >= 3) {
+        reduction = 0.15; // 15% de réduction
+      } else if (quantite >= 2) {
+        reduction = 0.10; // 10% de réduction
+      }
+
+      if (reduction > 0) {
+        const montantReduction = total * reduction;
+        total -= montantReduction;
+      }
+
+      // Affichage du résultat
+      const resultatDiv = document.getElementById('resultat');
+      resultatDiv.classList.remove('d-none');
+      
+      let detailsProjet = '';
+      if (typeProjet && fonctionnalites) {
+        detailsProjet = `<div class="mt-2 mb-2">
+          <small class="text-muted">
+            Complexité du projet: ${(complexite - 1) * 100}%<br>
+            Type de projet: ${typeProjet}<br>
+            Nombre de fonctionnalités: ${fonctionnalites.split('\n').filter(f => f.trim()).length}
+          </small>
+        </div>`;
+      }
+
+      // Préparation des données pour le graphique
+      const donneesGraphique = {
+        coutBase: basePrices[service] || 50000,
+        coutOptions: (document.getElementById('hebergement').checked ? 20000 : 0) +
+                     (document.getElementById('urgence').checked ? 15000 : 0) +
+                     (document.getElementById('maintenance').checked ? 30000 : 0),
+        coutComplexite: Math.round((total / quantite - (basePrices[service] || 50000)) -
+                       ((document.getElementById('hebergement').checked ? 20000 : 0) +
+                        (document.getElementById('urgence').checked ? 15000 : 0) +
+                        (document.getElementById('maintenance').checked ? 30000 : 0))),
+        reduction: reduction > 0 ? Math.round(total * reduction) : 0
+      };
+
+      // Mise à jour du graphique
+      updateChart(donneesGraphique);
+
+      resultatDiv.innerHTML = `
+        ${detailsProjet}
+        <div class="mb-3">
+          <h4>Montant estimé : ${Math.round(total).toLocaleString()} F CFA</h4>
+          ${reduction > 0 ? `<span class="reduction-badge">-${(reduction * 100)}% appliqué</span>` : ''}
+        </div>
+        <div class="small text-muted">
+          <div>Coût de base : ${donneesGraphique.coutBase.toLocaleString()} F CFA</div>
+          <div>Options supplémentaires : ${donneesGraphique.coutOptions.toLocaleString()} F CFA</div>
+          <div>Ajustement complexité : ${donneesGraphique.coutComplexite.toLocaleString()} F CFA</div>
+          ${reduction > 0 ? `<div>Réduction appliquée : -${donneesGraphique.reduction.toLocaleString()} F CFA</div>` : ''}
+        </div>
+      `;
+
+      // Afficher le conteneur du graphique
+      document.getElementById('graphiqueContainer').classList.remove('d-none');
+
+      document.getElementById('contactForm').classList.remove('d-none');
+    }
+
+    function envoyerDemande() {
+      const nom = document.getElementById('nom').value;
+      const email = document.getElementById('email').value;
+      const telephone = document.getElementById('telephone').value;
+
+      if (!nom || !email || !telephone) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Veuillez remplir tous les champs du formulaire.'
+        });
+        return;
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Succès !',
+        text: 'Votre demande a été envoyée avec succès ! Nous vous contacterons bientôt.',
+        showConfirmButton: false,
+        timer: 2000
+      });
+
+      // Sauvegarder le devis automatiquement
+      sauvegarderDevis();
+    }
+
+    function sauvegarderDevis() {
+      const devisData = {
+        date: new Date().toLocaleDateString(),
+        service: document.getElementById('categorie').value,
+        typeProjet: document.getElementById('typeProjet').value,
+        fonctionnalites: document.getElementById('fonctionnalites').value,
+        montant: document.getElementById('resultat').innerText,
+        id: Date.now()
+      };
+
+      let devisHistory = JSON.parse(localStorage.getItem('devisHistory') || '[]');
+      devisHistory.unshift(devisData);
+      localStorage.setItem('devisHistory', JSON.stringify(devisHistory));
+
+      afficherHistoriqueDevis();
+      Swal.fire({
+        icon: 'success',
+        title: 'Devis sauvegardé !',
+        text: 'Votre devis a été sauvegardé avec succès.',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    }
+
+    function afficherHistoriqueDevis() {
+      const devisHistory = JSON.parse(localStorage.getItem('devisHistory') || '[]');
+      const historyDiv = document.getElementById('devisHistory');
+      const historyList = document.getElementById('devisHistoryList');
+      
+      if (devisHistory.length > 0) {
+        historyDiv.classList.remove('d-none');
+        historyList.innerHTML = devisHistory.map(devis => `
+          <div class="list-group-item devis-item animate__animated animate__fadeIn">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">${devis.service || 'Devis personnalisé'}</h6>
+              <small>${devis.date}</small>
+            </div>
+            <p class="mb-1">${devis.montant}</p>
+            <small>Type: ${devis.typeProjet || 'Non spécifié'}</small>
+          </div>
+        `).join('');
+      }
+    }
+
+    function exportDevisPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      // En-tête
+      doc.setFontSize(20);
+      doc.text('Devis - M-Tech Group', 105, 20, { align: 'center' });
+      
+      // Informations du devis
+      doc.setFontSize(12);
+      doc.text('Date: ' + new Date().toLocaleDateString(), 20, 40);
+      doc.text('Service: ' + document.getElementById('categorie').options[document.getElementById('categorie').selectedIndex].text, 20, 50);
+      doc.text('Type de projet: ' + document.getElementById('typeProjet').value, 20, 60);
+      doc.text('Montant total: ' + document.getElementById('resultat').innerText, 20, 70);
+      
+      // Fonctionnalités
+      doc.text('Fonctionnalités:', 20, 90);
+      const fonctionnalites = document.getElementById('fonctionnalites').value.split('\n');
+      let y = 100;
+      fonctionnalites.forEach(fonction => {
+        if (fonction.trim()) {
+          doc.text('- ' + fonction, 30, y);
+          y += 10;
+        }
+      });
+      
+      // Sauvegarde du PDF
+      doc.save('devis-mtech-' + new Date().toISOString().split('T')[0] + '.pdf');
+    }
+
+    // Suggestions dynamiques pour les fonctionnalités
+    document.getElementById('typeProjet').addEventListener('change', function() {
+      const suggestions = {
+        site_web: [
+          'Formulaire de contact',
+          'Galerie d\'images',
+          'Blog intégré',
+          'Système de newsletter'
+        ],
+        application: [
+          'Authentification utilisateur',
+          'Tableau de bord',
+          'Notifications push',
+          'Synchronisation des données'
+        ],
+        design: [
+          'Logo vectoriel',
+          'Charte graphique',
+          'Maquettes responsive',
+          'Kit de médias sociaux'
+        ]
+      };
+
+      const fonctionnalitesField = document.getElementById('fonctionnalites');
+      const selectedType = this.value;
+      
+      if (suggestions[selectedType]) {
+        fonctionnalitesField.placeholder = 'Suggestions:\n' + suggestions[selectedType].join('\n');
+      }
+    });
+
+    // Fonction pour mettre à jour le graphique
+    function updateChart(donnees) {
+      const ctx = document.getElementById('graphiqueRepartition').getContext('2d');
+      
+      // Détruire le graphique existant s'il y en a un
+      if (window.myChart instanceof Chart) {
+        window.myChart.destroy();
+      }
+
+      window.myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: [
+            'Coût de base',
+            'Options supplémentaires',
+            'Ajustement complexité',
+            'Réduction'
+          ],
+          datasets: [{
+            data: [
+              donnees.coutBase,
+              donnees.coutOptions,
+              donnees.coutComplexite,
+              donnees.reduction
+            ],
+            backgroundColor: [
+              '#e60000',
+              '#28a745',
+              '#ffc107',
+              '#dc3545'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: document.body.classList.contains('dark-mode') ? '#f8f9fa' : '#212529'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const value = context.raw;
+                  const percentage = ((value / (donnees.coutBase + donnees.coutOptions + donnees.coutComplexite)) * 100).toFixed(1);
+                  return `${context.label}: ${value.toLocaleString()} F CFA (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Mettre à jour les couleurs du graphique lors du changement de thème
+    function updateChartTheme() {
+      if (window.myChart instanceof Chart) {
+        window.myChart.options.plugins.legend.labels.color = 
+          document.body.classList.contains('dark-mode') ? '#f8f9fa' : '#212529';
+        window.myChart.update();
+      }
+    }
+
+    // Ajouter la mise à jour du thème du graphique à la fonction toggleTheme
+    const originalToggleTheme = toggleTheme;
+    toggleTheme = function() {
+      originalToggleTheme();
+      updateChartTheme();
+    };
+
+    // Afficher l'historique au chargement
+    window.addEventListener('load', afficherHistoriqueDevis);
+  </script>
+</body>
+</html>
